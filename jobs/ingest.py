@@ -14,6 +14,7 @@ from typing import Any
 
 import httpx
 import psycopg2.extras
+from urllib.parse import quote
 from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -28,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 POLYGON_BASE = "https://api.polygon.io"
-INDEX_TICKERS = ["$I:SPX", "$I:NDX", "$I:VIX"]
+INDEX_TICKERS = ["I:SPX", "I:NDX", "I:VIX"]
 
 
 def _api_key() -> str:
@@ -126,17 +127,25 @@ def upsert_stocks_reference(conn: Any, results: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 
 def fetch_index_bar(ticker: str, target_date: date) -> dict[str, Any] | None:
-    """Fetch a single day's bar for an index ticker (e.g. $I:SPX)."""
+    """Fetch a single day's bar for an index ticker (e.g. I:SPX)."""
     date_str = target_date.isoformat()
+    # URL-encode the ticker so I:SPX → I%3ASPX in the path
+    encoded_ticker = quote(ticker, safe="")
     url = (
-        f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/range/1/day"
+        f"{POLYGON_BASE}/v2/aggs/ticker/{encoded_ticker}/range/1/day"
         f"/{date_str}/{date_str}"
     )
     params = {"apiKey": _api_key()}
     logger.info("Fetching index bar: %s for %s", ticker, date_str)
 
     response = httpx.get(url, params=params, timeout=30.0)
-    response.raise_for_status()
+
+    if response.status_code == 404:
+        logger.warning("Index %s not found for %s (404) — may not be in your plan", ticker, date_str)
+        return None
+    if response.status_code != 200:
+        logger.error("Index %s returned HTTP %s for %s", ticker, response.status_code, date_str)
+        return None
 
     data = response.json()
     results = data.get("results") or []

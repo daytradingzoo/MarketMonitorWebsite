@@ -104,7 +104,7 @@ def _compute_index_overlays(index_df: pd.DataFrame, target_date: date) -> dict[s
     index_df = index_df.copy()
     index_df["date"] = pd.to_datetime(index_df["date"]).dt.date
 
-    for ticker, col_prefix in [("$I:SPX", "spx"), ("$I:NDX", "ndx"), ("$I:VIX", "vix")]:
+    for ticker, col_prefix in [("I:SPX", "spx"), ("I:NDX", "ndx"), ("I:VIX", "vix")]:
         tdf = index_df[index_df["ticker"] == ticker].sort_values("date").reset_index(drop=True)
         if tdf.empty:
             continue

@@ -8,7 +8,8 @@ alwaysApply: true
 ## Polygon.io conventions
 
 - Stock tickers: plain symbol, e.g. `AAPL`, `MSFT`
-- Index tickers use `$I:` prefix: `$I:SPX`, `$I:NDX`, `$I:VIX` (NOT Norgate's `$$SPX`)
+- Index tickers use `I:` prefix in the REST API: `I:SPX`, `I:NDX`, `I:VIX` (NOT Norgate's `$$SPX`, NOT `$I:SPX`)
+- URL-encode index tickers in URL paths: `quote("I:SPX", safe="")` → `I%3ASPX`
 - Always use `adjusted=true` on all stock OHLCV requests and flat files
 - Grouped daily endpoint: `GET /v2/aggs/grouped/locale/us/market/stocks/{date}`
 - Flat files via S3: `flatfiles.polygon.io` bucket, `us_stocks_sip/day_aggs_v1/`
