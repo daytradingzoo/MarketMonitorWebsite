@@ -122,7 +122,7 @@ def compute_metrics_for_universe(bars_df: pd.DataFrame) -> pd.DataFrame:
 
     for ticker in tickers:
         tdf = bars_df[bars_df["ticker"] == ticker].copy().reset_index(drop=True)
-        if len(tdf) < 2:
+        if len(tdf) < 1:
             continue
         try:
             tdf = _compute_ticker_metrics(tdf)
@@ -160,6 +160,9 @@ def load_bars_for_date(conn: Any, target_date: date) -> pd.DataFrame:
 
 def upsert_daily_metrics(conn: Any, metrics_df: pd.DataFrame, target_date: date) -> int:
     """Upsert daily_metrics rows for target_date only."""
+    if metrics_df.empty or "date" not in metrics_df.columns:
+        logger.info("No metrics computed for %s", target_date)
+        return 0
     today_metrics = metrics_df[metrics_df["date"] == target_date].copy()
     if today_metrics.empty:
         logger.info("No metrics to upsert for %s", target_date)

@@ -124,13 +124,14 @@ def _compute_index_overlays(index_df: pd.DataFrame, target_date: date) -> dict[s
             for period in [5, 10, 20]:
                 tdf[f"roc{col_prefix}{period:03d}"] = (c - c.shift(period)) / c.shift(period)
 
-        # Extract today's row
+        # Extract today's row — only include computed columns, not raw OHLCV
         today_row = tdf[tdf["date"] == target_date]
         if today_row.empty:
             continue
 
+        raw_cols = {"open", "high", "low", "close", "volume", "ticker", "date"}
         for col in tdf.columns:
-            if col not in ("ticker", "date"):
+            if col not in raw_cols:
                 val = today_row.iloc[0][col]
                 result[col] = None if pd.isna(val) else float(val)
 
@@ -437,18 +438,28 @@ def _enrich_with_prior_close(metrics_df: pd.DataFrame, bars_df: pd.DataFrame, ta
     bars_df = bars_df.copy()
     bars_df["date"] = pd.to_datetime(bars_df["date"]).dt.date
 
-    today_bars    = bars_df[bars_df["date"] == target_date][["ticker", "open", "close", "high", "low", "volume"]]
-    prior_bars    = bars_df[bars_df["date"] < target_date].sort_values("date")
-
-    # Most recent prior close per ticker
-    prior_close   = prior_bars.groupby("ticker")["close"].last().reset_index().rename(columns={"close": "prior_close"})
-    # 20-day prior close: take the close from 20 trading days ago
-    prior_20 = prior_bars.groupby("ticker").nth(-20)[["close"]].reset_index().rename(columns={"close": "prior_close_20"})
+    today_bars = bars_df[bars_df["date"] == target_date][["ticker", "open", "close", "high", "low", "volume"]]
+    prior_bars = bars_df[bars_df["date"] < target_date].sort_values("date")
 
     df = metrics_df.copy()
     df = df.merge(today_bars[["ticker", "open", "close", "high", "low", "volume"]], on="ticker", how="left")
-    df = df.merge(prior_close, on="ticker", how="left")
-    df = df.merge(prior_20,    on="ticker", how="left")
+
+    if not prior_bars.empty:
+        # Most recent prior close per ticker
+        prior_close = (
+            prior_bars.groupby("ticker")["close"]
+            .last()
+            .reset_index()
+            .rename(columns={"close": "prior_close"})
+        )
+        df = df.merge(prior_close, on="ticker", how="left")
+
+        # Close from ~20 trading days ago
+        prior_20_raw = prior_bars.groupby("ticker").apply(
+            lambda g: g.sort_values("date").iloc[-20]["close"] if len(g) >= 20 else np.nan,
+            include_groups=False,
+        ).reset_index().rename(columns={0: "prior_close_20"})
+        df = df.merge(prior_20_raw, on="ticker", how="left")
 
     return df
 
