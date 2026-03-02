@@ -1,6 +1,7 @@
-pandas==2.2.3
-pandas-ta==0.3.14b0
+pandas>=2.3.2
+pandas-ta==0.4.71b0
 psycopg2-binary==2.9.10
 httpx==0.28.1
 python-dotenv==1.0.1
 boto3==1.35.85
+numpy>=1.26

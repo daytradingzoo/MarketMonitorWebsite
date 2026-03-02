@@ -6,9 +6,8 @@ services:
     runtime: python
     plan: starter
     region: oregon
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /
     envVars:
       - key: DATABASE_URL
@@ -39,10 +38,9 @@ services:
     runtime: python
     plan: starter
     region: oregon
-    rootDir: jobs
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r jobs/requirements.txt
     schedule: "30 21 * * 1-5"
-    command: python -m run_pipeline
+    command: python -m jobs.run_pipeline
     envVars:
       - key: DATABASE_URL
         fromDatabase:
