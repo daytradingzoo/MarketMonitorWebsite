@@ -1,0 +1,34 @@
+---
+description: Development workflow, commit discipline, and change management rules
+alwaysApply: true
+---
+
+# Development Workflow
+
+## Before making changes
+
+- Always propose a plan before starting non-trivial work
+- Ask before large refactors that touch multiple files
+- Clarify scope before beginning — never assume
+
+## While making changes
+
+- Work in small, focused steps — one concern per commit
+- Never modify files outside the scope of the current task
+- Never change unrelated code while fixing something else
+- Summarize what changed and why after completing edits
+
+## Commits and branching
+
+- `dev` branch: active development, no auto-deploy
+- `main` branch: production only — merging triggers Render auto-deploy
+- Commit messages describe intent, not just the code changed
+- Small commits are preferred over large all-at-once changes
+
+## What "done" means
+
+A task is done when:
+1. The code is written and lint-clean
+2. The change is tested (manually run or unit tested)
+3. Unrelated files are unchanged
+4. The change is committed with a clear message

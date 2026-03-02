@@ -1,0 +1,49 @@
+---
+description: TypeScript and React conventions for the Next.js frontend
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript Standards
+
+## Types
+
+- No `any` types — use `unknown` and narrow, or define proper interfaces
+- Define interfaces for all API response shapes in `frontend/lib/api.ts`
+- `BlockConfig` interface is the canonical type for all dashboard blocks
+
+## Naming
+
+- `PascalCase` for components, interfaces, and types
+- `camelCase` for variables, functions, and props
+- Files: `PascalCase.tsx` for components, `camelCase.ts` for utilities
+
+## Components
+
+- All components are functional — no class components
+- Use Tremor components before building custom ones
+- If a Tremor component exists for the use case, use it
+- No inline styles — Tailwind classes only
+- Mark `"use client"` only when the component requires browser APIs or event handlers
+- Prefer Server Components where possible
+
+## API calls
+
+- All API fetch calls go in `frontend/lib/api.ts` — never inline in components
+- Components receive data as props or via a dedicated hook
+- No hardcoded API URLs in components — use `NEXT_PUBLIC_API_URL` env var
+
+## Block system
+
+- Every visual dashboard element must use the `BlockConfig` + `BlockRenderer` pattern
+- Never build one-off chart components — use `LineChartBlock`, `BarChartBlock`, etc.
+- Chart data always flows through the generic `/api/repos/{id}/data` endpoint
+
+## Import order
+
+1. React / Next.js
+2. Tremor components
+3. Other third-party
+4. Local components
+5. Local lib/utils
+6. Types

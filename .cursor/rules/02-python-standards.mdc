@@ -1,0 +1,68 @@
+---
+description: Python code style, typing, logging, and error handling conventions
+globs: **/*.py
+alwaysApply: false
+---
+
+# Python Standards
+
+## Type hints
+
+- Required on all function signatures (parameters and return types)
+- Use `Optional[X]` or `X | None` for nullable values
+- Use `list[X]`, `dict[K, V]` (lowercase, Python 3.10+)
+
+## Naming
+
+- `snake_case` for all variables, functions, modules, and column names
+- `PascalCase` for classes only
+- Descriptive names — no single-letter variables except loop indices
+
+## Imports order
+
+1. Standard library (`os`, `datetime`, `logging`)
+2. Third-party (`pandas`, `psycopg2`, `httpx`)
+3. Local modules
+
+Separate each group with a blank line.
+
+## Docstrings
+
+- One-liner for simple functions: `"""Compute 20-day SMA for all tickers."""`
+- Full docstring for complex functions: Args, Returns, Raises sections
+- No comments that just narrate what the code does
+
+## Logging
+
+- Use `logging` module always — never `print()`
+- Configure at module level: `logger = logging.getLogger(__name__)`
+- Log levels: DEBUG for data details, INFO for pipeline steps, ERROR for failures
+
+## Error handling
+
+```python
+# BAD — silent swallow
+try:
+    result = fetch_data()
+except Exception:
+    pass
+
+# GOOD — log and re-raise or return meaningful result
+try:
+    result = fetch_data()
+except Exception as e:
+    logger.error("Failed to fetch data: %s", e)
+    raise
+```
+
+- Never silently swallow exceptions
+- Always log before re-raising
+- Use specific exception types where possible
+
+## Preferred libraries
+
+- DB: `psycopg2` with `psycopg2.extras.execute_values` for bulk inserts
+- HTTP: `httpx` (async-capable)
+- Data: `pandas`, `pandas_ta` for indicators
+- Config: `python-dotenv` for `.env` loading
+- Use built-ins first before adding new dependencies

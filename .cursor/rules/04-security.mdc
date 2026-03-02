@@ -1,0 +1,42 @@
+---
+description: Security rules, secrets management, and safe destructive action handling
+alwaysApply: true
+---
+
+# Security
+
+## Secrets and credentials
+
+- Never hardcode API keys, passwords, or connection strings in any file
+- All secrets are loaded from environment variables only
+- `.env` is always in `.gitignore` — never commit it
+- In code: `os.environ["POLYGON_API_KEY"]` or `python-dotenv` for local dev
+- In Render: set via the Render dashboard environment variables UI
+
+## Required environment variables
+
+- `POLYGON_API_KEY` — Polygon.io API key
+- `DATABASE_URL` — PostgreSQL connection string
+- `NEXT_PUBLIC_API_URL` — FastAPI base URL (frontend-facing)
+
+## Input validation
+
+- Validate and sanitize all external inputs: Polygon API responses, user query parameters
+- Never pass raw user input directly into SQL — always use parameterized queries
+- Validate date ranges, metric names, and repo IDs before querying
+
+## Data source discipline
+
+- Polygon.io is the only permitted data source — no fallbacks, no alternative providers
+- If Polygon returns no data (market holiday, plan limitation): log and exit cleanly, do not substitute data
+
+## Destructive actions
+
+- Always log a WARNING before any DELETE or TRUNCATE operation
+- The rolling-window purge (deleting daily_bars/daily_metrics older than 252 days) must log the row count before deleting
+- Never run destructive DB operations without explicit intent in the code — no accidental drops
+
+## Logging security
+
+- Never log secret values, connection strings, or API keys
+- Log the fact that a secret was loaded, not its value: `logger.info("Polygon API key loaded")`

@@ -1,0 +1,39 @@
+---
+description: Project layer boundaries, folder ownership, and coupling rules
+alwaysApply: true
+---
+
+# Project Architecture
+
+## Three-layer boundary — never cross layers
+
+```
+jobs/        → data pipeline only (ingest, calculate, aggregate)
+backend/     → API only (FastAPI routers, models, db connection)
+frontend/    → UI only (Next.js pages, components, API calls)
+```
+
+- `jobs/` never imports from `backend/` or `frontend/`
+- `frontend/` never connects to the database directly — only calls FastAPI endpoints
+- `backend/` never runs calculations — only reads pre-computed data from DB
+- No circular imports between layers
+
+## Business logic placement
+
+- All market data calculations live in `jobs/` (Python)
+- All API query logic lives in `backend/routers/`
+- All rendering and interaction logic lives in `frontend/`
+- SQL views are thin read aliases only — no business logic in the DB
+
+## Repo system rules
+
+- A "repo" is a named pre-aggregated time-series table (date + optional dimensions)
+- Repos are always pre-aggregated — never expose `daily_metrics` (stock-level) to users
+- Every repo must be registered in the `repos` and `repo_columns` metadata tables
+- Adding a new repo = new aggregation script + metadata registration, no API changes needed
+
+## Data source
+
+- Polygon.io is the single data source — no fallbacks, no yfinance, no other providers
+- Always use split-adjusted prices (`adjusted=true` on all Polygon calls)
+- Index tickers use Polygon's `$I:` prefix (`$I:SPX`, `$I:NDX`, `$I:VIX`)

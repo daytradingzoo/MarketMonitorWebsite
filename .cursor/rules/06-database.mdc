@@ -1,0 +1,63 @@
+---
+description: PostgreSQL naming, query safety, migration, and rolling window purge rules
+globs: **/*.py
+alwaysApply: false
+---
+
+# Database Standards
+
+## Naming
+
+- Table names: `snake_case` plural (`stocks`, `daily_bars`, `market_summary`)
+- Column names: `snake_case`
+- Primary keys: natural composite where appropriate, e.g. `(ticker, date)`
+- Index names: `idx_{table}_{columns}`, e.g. `idx_daily_bars_ticker_date`
+
+## Always include on new tables
+
+- `created_at TIMESTAMPTZ DEFAULT now()` on all tables
+- `NOT NULL` with defaults is preferred over nullable columns unless genuinely optional
+
+## Parameterized queries — mandatory
+
+```python
+# BAD — SQL injection risk
+cursor.execute(f"SELECT * FROM repos WHERE id = '{repo_id}'")
+
+# GOOD — parameterized
+cursor.execute("SELECT * FROM repos WHERE id = %s", (repo_id,))
+```
+
+Never use f-strings or string concatenation to build SQL. Always use `%s` placeholders with psycopg2.
+
+## Bulk inserts
+
+Use `psycopg2.extras.execute_values` for multi-row inserts — never loop with individual INSERT calls.
+
+## Upserts
+
+All pipeline writes use `INSERT ... ON CONFLICT (...) DO UPDATE SET ...` — fully idempotent, safe to re-run.
+
+## Migrations
+
+- Migrations are additive only — new tables, new columns with defaults
+- Never drop or rename columns in a migration without explicit approval
+- Migration files go in `backend/migrations/` as numbered SQL files
+
+## Rolling window purge
+
+After each daily pipeline run, purge `daily_bars` and `daily_metrics` rows older than 252 trading days:
+
+```python
+logger.warning("Purging daily_bars older than 252 days — row count: %d", count)
+cursor.execute(
+    "DELETE FROM daily_bars WHERE date < %s",
+    (cutoff_date,)
+)
+```
+
+Always log the row count before deleting. Use a computed cutoff date, not a hardcoded string.
+
+## SQL views
+
+Views are read-only convenience aliases — no business logic, no calculations. Keep them simple joins or filters over pre-computed tables.

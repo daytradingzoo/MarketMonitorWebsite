@@ -1,0 +1,64 @@
+---
+description: Stock market domain knowledge, Polygon conventions, and metric formulas
+alwaysApply: true
+---
+
+# Domain Knowledge
+
+## Polygon.io conventions
+
+- Stock tickers: plain symbol, e.g. `AAPL`, `MSFT`
+- Index tickers use `$I:` prefix: `$I:SPX`, `$I:NDX`, `$I:VIX` (NOT Norgate's `$$SPX`)
+- Always use `adjusted=true` on all stock OHLCV requests and flat files
+- Grouped daily endpoint: `GET /v2/aggs/grouped/locale/us/market/stocks/{date}`
+- Flat files via S3: `flatfiles.polygon.io` bucket, `us_stocks_sip/day_aggs_v1/`
+- Market holidays: Polygon returns empty response — treat as no-data day, do not error
+
+## Trading calendar
+
+- ~252 trading days per year
+- Weekdays only, excluding US market holidays
+- All dates as `YYYY-MM-DD` strings in DB and API
+- Timezone context for daily data: US/Eastern (market close ~4:00 PM ET)
+
+## Key metric formulas
+
+| Metric | Formula |
+|---|---|
+| `liqfilter` | `MA(close × volume, 20) >= 250,000` |
+| `pricefilter` | `close[20] >= 5` |
+| `rvol` | `volume / rolling(20).mean(volume)` |
+| `ibs` | `(close - low) / (high - low)` |
+| `sma_N` | `rolling(N).mean(close)` |
+| `atr_N` | `pandas_ta.atr(high, low, close, length=N)` |
+| `rsi14` | `pandas_ta.rsi(close, length=14)` |
+| `hhv_N` | `rolling(N).max(close)` |
+| `llv_N` | `rolling(N).min(close)` |
+| `t2108` | `count(close > sma40) / total_stocks` |
+| `extremeup` | `close > open AND range > atr21 AND body > 0.5 × range AND advancing` |
+| `bu021ok` | `close > open AND close > hhv021[1] AND hhv007[1] < hhv021[1]` |
+| `mcclellan` | `ema19 - ema39` where input = `((adv - dec) / (adv + dec)) × 1000` |
+| `rat5` | `sum(adv, 5 days) / sum(dec, 5 days)` |
+
+## McClellan EMA rule
+
+McClellan Oscillator requires chronological processing — each day's EMA depends on the prior day. When building historical data, carry `adv_ema19` and `adv_ema39` forward through the date loop. For daily updates, read yesterday's values from `market_summary`.
+
+## Universe and repo grain
+
+- `all`: NYSE + NASDAQ combined, liqfilter + pricefilter applied
+- `nyse`: NYSE stocks only
+- `nasdaq`: NASDAQ stocks only
+- Stock-level data (`daily_metrics`) is never exposed to users — always aggregate first
+- Repo grain is set when the aggregation script is written — date only, or date + dimension
+
+## Prices
+
+- All prices in USD
+- Volumes in shares (not dollar volume, unless explicitly computing dollar volume)
+- RVOL and dollar_volume use 20-day rolling averages as the baseline
+
+## GICS sectors (standard classification)
+
+Technology, Healthcare, Financials, Consumer Discretionary, Consumer Staples,
+Industrials, Energy, Materials, Real Estate, Communication Services, Utilities
