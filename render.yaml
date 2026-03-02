@@ -56,4 +56,3 @@ databases:
     plan: starter
     region: oregon
     databaseName: marketmonitor
-    user: marketmonitor
